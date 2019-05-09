@@ -22,6 +22,9 @@ uniform vec3 lightDir;
 uniform vec4 lightColor;
 uniform float attenuation;
 
+
+uniform samplerCube sCubeMap;
+
 uniform sampler2D sDiffMap;
 uniform sampler2D sSpecMap;
 
@@ -97,12 +100,17 @@ vec3 SpecularGGX(vec3 specColor, vec3 light, vec3 normal, vec3 halfVec, vec3 vie
 
 vec3 computeLighting(vec3 specColor, vec3 light, vec3 normal, vec3 halfVec, vec3 view, float gloss, float fresnelFactor, float dotNL) 
 {
+	//return SpecularBlinnPhong(specColor, light, normal, halfVec, 1.0, fresnelFactor, dotNL);
 	return SpecularGGX(specColor, light, normal, halfVec, view, gloss, fresnelFactor, dotNL);
 }
 
 vec3 CalculateLighting(vec3 normal, vec3 diffuseMaterial, vec3 specularMaterial, float gloss)
 {
+
+    vec3 N = normalize(normal);
+    vec3 I = normalize((vertIn.position).xyz - vec3(0.0, 0.0, 0.0));
 	vec3 eyeDir = vec3(normalize(-vertIn.position).xyz);
+    vec3 R = normalize(reflect(I, N));
 	vec3 lightAmbient = ambientFactor;
 	vec3 lightDiffuse = vec3(0.0, 0.0, 0.0);
 	vec3 lightSpecular = vec3(0.0, 0.0, 0.0);
@@ -111,8 +119,8 @@ vec3 CalculateLighting(vec3 normal, vec3 diffuseMaterial, vec3 specularMaterial,
     // Ambient, Diffuse, and Specular
     lightDiffuse += lightColor.rgb * NdotL * attenuation;
     lightSpecular += lightColor.rgb * computeLighting(specularMaterial, lightDir, normal, halfVec, eyeDir, gloss, 1.0, NdotL);
-
-	return diffuseMaterial * (lightAmbient + lightDiffuse) + lightSpecular;
+	vec3 envMap = textureLod(sCubeMap, R, 2.5).xyz * lightColor.rgb;
+	return diffuseMaterial * (lightAmbient + lightDiffuse) + lightSpecular + envMap;
 }
 
 out vec4 fragOut;
